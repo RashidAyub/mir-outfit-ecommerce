@@ -1181,4 +1181,224 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* Shop Layout Styles */
+.shop-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 40px;
+    padding-top: calc(var(--header-height) + 30px);
+}
+
+.shop-sidebar {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    padding: 30px;
+    border-radius: var(--radius-sm);
+    height: fit-content;
+    position: sticky;
+    top: calc(var(--header-height) + 20px);
+}
+
+.filter-section {
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 24px;
+}
+
+.filter-section:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.filter-title {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 18px;
+    color: var(--text-primary);
+}
+
+.filter-list li {
+    margin-bottom: 10px;
+}
+
+.filter-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* Custom Checkbox / Radio styling */
+.filter-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition-fast);
+}
+
+.filter-checkbox-label:hover {
+    color: var(--primary);
+}
+
+.filter-checkbox-label input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+/* Price Range Slider */
+.price-slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.price-slider {
+    width: 100%;
+    accent-color: var(--primary);
+}
+
+.price-values {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Shop Catalog Main Panel styling */
+.shop-catalog {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.shop-catalog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+}
+
+.shop-catalog-title h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.shop-catalog-title p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.shop-catalog-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shop-sort-select {
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    background-color: #ffffff;
+    cursor: pointer;
+    min-width: 180px;
+}
+
+/* Pagination container styling */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+}
+
+.pagination-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.pagination-btn:hover,
+.pagination-btn.active {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+}
+
+.pagination-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Sidebar Toggle for Mobile View */
+.mobile-filter-toggle {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    background-color: #ffffff;
+}
+
+/* Shop Mobile Responsive Overrides */
+@media (max-width: 992px) {
+    .shop-layout {
+        grid-template-columns: 1fr;
+        padding-top: calc(var(--header-height) + 20px);
+    }
+    
+    .mobile-filter-toggle {
+        display: inline-flex;
+    }
+    
+    .shop-sidebar {
+        display: none; /* Will toggle open via JS drawer */
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 300px;
+        height: 100vh;
+        z-index: 1050;
+        background-color: #ffffff;
+        box-shadow: var(--shadow-lg);
+        overflow-y: auto;
+        transition: var(--transition-smooth);
+        padding-top: 40px;
+    }
+    
+    .shop-sidebar.active {
+        display: block;
+        left: 0;
+    }
+}
+
+
 
