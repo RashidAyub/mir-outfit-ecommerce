@@ -1,0 +1,114 @@
+/* Responsive Layout Adjustments & Mobile Nav */
+
+@media (max-width: 1024px) {
+    /* Tablet & Smaller Screens */
+    .container {
+        padding: 0 20px;
+    }
+    
+    .footer-grid {
+        grid-template-columns: 1.5fr 1fr 1fr;
+        gap: 30px;
+    }
+    
+    .footer-grid > *:last-child {
+        grid-column: span 3;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Mobile Navigation Burger Layout */
+    .mobile-nav-toggle {
+        display: block;
+        order: 3;
+    }
+    
+    .nav-actions {
+        order: 2;
+        gap: 16px;
+    }
+    
+    .nav-links {
+        position: fixed;
+        top: var(--header-height);
+        left: -100%;
+        width: 100%;
+        height: calc(100vh - var(--header-height));
+        background-color: #ffffff;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        transition: var(--transition-smooth);
+        z-index: 999;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .nav-links.active {
+        left: 0;
+    }
+    
+    .nav-links a {
+        font-size: 1.25rem;
+    }
+
+    /* Footer Adaptive Grid */
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+    
+    .footer-grid > * {
+        grid-column: span 1 !important;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    /* Section adjustments */
+    .section {
+        padding: 60px 0;
+    }
+    
+    .section-title {
+        margin-bottom: 36px;
+    }
+    
+    .section-title h2 {
+        font-size: 1.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --header-height: 70px;
+    }
+    
+    .nav-logo {
+        font-size: 1.2rem;
+        letter-spacing: 0.1em;
+    }
+    
+    .nav-actions {
+        gap: 12px;
+    }
+    
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 15px;
+    }
+
+    .product-card-content {
+        padding: 12px;
+    }
+    
+    .product-card-title {
+        font-size: 0.95rem;
+    }
+    
+    .product-card-price {
+        font-size: 1rem;
+    }
+}
