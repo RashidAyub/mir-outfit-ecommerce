@@ -1,6 +1,6 @@
 /* Responsive Layout Adjustments & Mobile Nav */
 
-@media (max-width: 1024px) {
+@media (max-width: 1279px) {
     /* Tablet & Smaller Screens */
     .container {
         padding: 0 20px;
