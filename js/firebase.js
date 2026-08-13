@@ -153,6 +153,7 @@ function initMockDb() {
             id: "admin-user",
             name: "MIR Admin",
             email: "admin@miroutfit.com",
+            password: "admin123",
             role: "admin",
             createdAt: new Date().toISOString()
         };

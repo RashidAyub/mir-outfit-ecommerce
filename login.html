@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to your MIR OUTFIT account. Access your orders, wishlist, and exclusive deals.">
+    <title>Login | MIR OUTFIT</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+    <!-- Loader -->
+    <div class="mir-loader-wrapper" id="mir-loader">
+        <div class="mir-loader-content">
+            <div class="mir-loader-brand">MIR</div>
+            <div class="mir-loader-icon-container">
+                <div class="mir-loader-spinner"></div>
+                <svg class="mir-loader-shirt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.37 8.91l-7.5-4.5a1.72 1.72 0 0 0-1.74 0l-7.5 4.5A1 1 0 0 0 3 9.77v8.46a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9.77a1 1 0 0 0-.63-.86z"></path>
+                    <path d="M12 4.5V2a2 2 0 0 1 2-2"></path>
+                </svg>
+            </div>
+            <div class="mir-loader-text">Preparing your style...</div>
+        </div>
+    </div>
+
+    <!-- Sticky Header -->
+    <header class="header">
+        <div class="container navbar">
+            <a href="index.html" class="nav-logo">MIR OUTFIT</a>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="shop.html">Shop</a>
+                <a href="shop.html?collection=summer">Summer</a>
+                <a href="shop.html?collection=winter">Winter</a>
+                <a href="index.html#categories">Categories</a>
+                <a href="about.html">About Us</a>
+            </nav>
+            <div class="nav-actions">
+                <button class="action-btn" id="search-btn" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <a href="cart.html" class="action-btn" id="cart-btn" aria-label="Cart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    <span class="cart-count-badge" id="cart-badge-count">0</span>
+                </a>
+                <a href="login.html" class="action-btn" id="profile-btn" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </a>
+                <button class="mobile-nav-toggle" aria-label="Toggle Navigation">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="search-overlay">
+        <div class="search-close" id="search-close">&times;</div>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" placeholder="Search our catalogs..." autocomplete="off">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <section class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Welcome Back</h2>
+                <p>Sign in to access your MIR OUTFIT account</p>
+            </div>
+
+            <div class="auth-error-msg" id="login-error-msg"></div>
+
+            <form class="auth-form" id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="login-email" required placeholder="Enter your email" autocomplete="email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-password" required placeholder="Enter your password" autocomplete="current-password">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="login-submit-btn">Sign In</button>
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="signup.html">Create Account</a>
+            </div>
+
+            <!-- Quick Access Info -->
+            <div style="margin-top:24px; padding:16px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-muted);">
+                <p style="font-weight:600; color:var(--text-primary); margin-bottom:8px;">Demo Credentials:</p>
+                <p><strong>Admin:</strong> admin@miroutfit.com / admin123</p>
+                <p><strong>Customer:</strong> Sign up to create a new account</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main JS -->
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/auth.js"></script>
+</body>
+</html>
