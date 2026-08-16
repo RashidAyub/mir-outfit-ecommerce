@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Setup | MIR OUTFIT</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <style>
+        .setup-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            padding: 40px 20px;
+        }
+        .setup-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+        }
+        .setup-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .setup-card p.subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+        .setup-warning {
+            background: #fff8e1;
+            border: 1px solid #f59e0b;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #92400e;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .setup-result {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            display: none;
+        }
+        .setup-result.success {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            color: #15803d;
+        }
+        .setup-result.error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #b91c1c;
+        }
+        .setup-steps {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .setup-steps ol {
+            padding-left: 18px;
+            margin: 8px 0 0;
+            line-height: 2;
+        }
+        .setup-steps strong {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-wrapper">
+        <div class="setup-card">
+            <h2>⚙️ Admin Account Setup</h2>
+            <p class="subtitle">Use this page to grant admin role to an existing Firebase user. Run this <strong>once only</strong>. After setup, delete or restrict this page.</p>
+
+            <div class="setup-warning">
+                ⚠️ <strong>Security Notice:</strong> This page writes to Firestore and should not be publicly accessible. Remove it from production after use.
+            </div>
+
+            <div class="setup-steps">
+                <strong>Instructions:</strong>
+                <ol>
+                    <li>Make sure the user is already registered via the <a href="signup.html">Signup page</a></li>
+                    <li>Enter that user's email below</li>
+                    <li>Enter the Firebase UID (find it in Firebase Console → Authentication)</li>
+                    <li>Click "Set Admin Role" — it will write <code>role: "admin"</code> to Firestore</li>
+                    <li>Log in with that account — it will now access the Admin Dashboard</li>
+                </ol>
+            </div>
+
+            <form id="setup-form">
+                <div class="form-group">
+                    <label for="admin-uid">Firebase UID *</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="admin-uid" required value="EKgs5MIqMCXQcm1ONQTUiqXj07G3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="admin-name">Admin Name *</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="admin-name" required placeholder="e.g. MIR Admin">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="admin-email">Admin Email *</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="admin-email" required placeholder="e.g. admin@miroutfit.com">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="setup-btn">Set Admin Role in Firestore</button>
+                </div>
+            </form>
+
+            <div class="setup-result" id="setup-result"></div>
+
+            <div style="margin-top: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+                <a href="login.html" style="color: var(--primary);">← Back to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, isFirebaseAvailable } from './js/firebase.js';
+        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const form = document.getElementById('setup-form');
+        const resultBox = document.getElementById('setup-result');
+        const btn = document.getElementById('setup-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const uid = document.getElementById('admin-uid').value.trim();
+            const name = document.getElementById('admin-name').value.trim();
+            const email = document.getElementById('admin-email').value.trim().toLowerCase();
+
+            if (!uid || !name || !email) {
+                showResult('Please fill in all fields.', 'error');
+                return;
+            }
+
+            if (!isFirebaseAvailable) {
+                showResult('Firebase is not available. Check your connection.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Setting up...';
+
+            try {
+                await setDoc(doc(db, "users", uid), {
+                    uid,
+                    name,
+                    email,
+                    role: "admin",
+                    createdAt: new Date().toISOString()
+                }, { merge: true });
+
+                showResult(
+                    `✅ Success! User "${name}" (${email}) has been granted admin role in Firestore.\n\nNow log in at the Login page with this account — you will be redirected to the Admin Dashboard.`,
+                    'success'
+                );
+                form.reset();
+            } catch (err) {
+                console.error('Admin setup error:', err);
+                showResult(`❌ Error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Set Admin Role in Firestore';
+            }
+        });
+
+        function showResult(message, type) {
+            resultBox.textContent = message;
+            resultBox.className = `setup-result ${type}`;
+            resultBox.style.display = 'block';
+            resultBox.style.whiteSpace = 'pre-wrap';
+        }
+    </script>
+</body>
+</html>

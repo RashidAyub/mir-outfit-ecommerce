@@ -45,7 +45,7 @@
                     Logout
                 </a>
                 <a href="../index.html" style="margin-top:12px; color:rgba(255,255,255,0.3);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                     View Store
                 </a>
             </div>
@@ -74,38 +74,67 @@
         </main>
     </div>
 
-    <!-- Product Modal -->
+    <!-- Product Modal — FIXED: uses correct field names, has all required fields -->
     <div class="admin-modal-overlay" id="product-modal">
-        <div class="admin-modal">
+        <div class="admin-modal" style="max-width: 600px;">
             <h3 id="modal-title">Add Product</h3>
             <form id="product-form">
                 <input type="hidden" id="prod-id">
+
                 <div class="admin-form-group">
-                    <label>Product Name</label>
-                    <input type="text" id="prod-name" required placeholder="e.g. Classic Summer Suit">
+                    <label>Product Title *</label>
+                    <input type="text" id="prod-title" required placeholder="e.g. Premium Cotton T-Shirt">
                 </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div class="admin-form-group">
-                        <label>Price (₨)</label>
-                        <input type="number" id="prod-price" required min="0" placeholder="e.g. 5000">
+                        <label>Price (₨) *</label>
+                        <input type="number" id="prod-price" required min="0" placeholder="e.g. 2499">
                     </div>
                     <div class="admin-form-group">
-                        <label>Category</label>
-                        <select id="prod-category" required>
+                        <label>Collection *</label>
+                        <select id="prod-collection" required>
                             <option value="summer">Summer</option>
                             <option value="winter">Winter</option>
-                            <option value="accessories">Accessories</option>
                         </select>
                     </div>
                 </div>
+
                 <div class="admin-form-group">
-                    <label>Image URL</label>
-                    <input type="text" id="prod-image" required placeholder="e.g. https://via.placeholder.com/400x500">
+                    <label>Category *</label>
+                    <select id="prod-category" required>
+                        <option value="t-shirts">T-Shirts</option>
+                        <option value="shirts">Shirts</option>
+                        <option value="polo shirts">Polo Shirts</option>
+                        <option value="jeans">Jeans</option>
+                        <option value="hoodies">Hoodies</option>
+                        <option value="jackets">Jackets</option>
+                        <option value="shorts">Shorts</option>
+                        <option value="accessories">Accessories</option>
+                    </select>
                 </div>
+
                 <div class="admin-form-group">
-                    <label>Description</label>
-                    <textarea id="prod-desc" required placeholder="Product description..."></textarea>
+                    <label>Image URL *</label>
+                    <input type="url" id="prod-image" required placeholder="https://images.unsplash.com/...">
                 </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="admin-form-group">
+                        <label>Sizes (comma-separated)</label>
+                        <input type="text" id="prod-sizes" placeholder="e.g. S, M, L, XL">
+                    </div>
+                    <div class="admin-form-group">
+                        <label>Colors (comma-separated)</label>
+                        <input type="text" id="prod-colors" placeholder="e.g. White, Black, Navy">
+                    </div>
+                </div>
+
+                <div class="admin-form-group">
+                    <label>Description *</label>
+                    <textarea id="prod-desc" required placeholder="Product description..." style="min-height: 80px;"></textarea>
+                </div>
+
                 <div class="modal-actions">
                     <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-product">Cancel</button>
                     <button type="submit" class="btn-admin btn-admin-primary">Save Product</button>

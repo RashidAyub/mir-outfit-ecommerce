@@ -66,7 +66,8 @@ function parseUrlParams() {
     // Category filtering
     const categoryParam = params.get('category');
     if (categoryParam) {
-        const catVal = categoryParam.toLowerCase().trim();
+        let catVal = decodeURIComponent(categoryParam).toLowerCase().trim();
+        if (catVal === 'polo-shirts') catVal = 'polo shirts';
         const validCategories = ['t-shirts', 'shirts', 'polo shirts', 'jeans', 'hoodies', 'jackets', 'shorts', 'accessories'];
         if (validCategories.includes(catVal)) {
             activeFilters.categories = [catVal];
@@ -77,7 +78,7 @@ function parseUrlParams() {
 
             const checkboxes = document.querySelectorAll('.cat-checkbox');
             checkboxes.forEach(cb => {
-                if (cb.value === catVal) cb.checked = true;
+                if (cb.value.toLowerCase() === catVal) cb.checked = true;
             });
         }
     }
@@ -209,20 +210,24 @@ function initFilters() {
 function applyFilters() {
     filteredProducts = products.filter(p => {
         // Search text check
-        const matchSearch = p.title.toLowerCase().includes(activeFilters.search) || 
-                            p.category.toLowerCase().includes(activeFilters.search) ||
-                            p.description.toLowerCase().includes(activeFilters.search);
+        const matchSearch = (p.title || '').toLowerCase().includes(activeFilters.search) || 
+                            (p.category || '').toLowerCase().includes(activeFilters.search) ||
+                            (p.description || '').toLowerCase().includes(activeFilters.search);
         
         // Category check
+        const prodCat = (p.category || '').toLowerCase().trim();
         const matchCategory = activeFilters.categories.length === 0 || 
-                              activeFilters.categories.includes(p.category.toLowerCase());
+                              activeFilters.categories.some(cat => {
+                                  return prodCat === cat || prodCat === cat.replace('-', ' ') || prodCat.replace('-', ' ') === cat;
+                              });
         
         // Collection check
+        const prodColl = (p.collection || '').toLowerCase().trim();
         const matchCollection = activeFilters.collections.length === 0 || 
-                                activeFilters.collections.includes(p.collection.toLowerCase());
+                                activeFilters.collections.includes(prodColl);
         
         // Price limit check
-        const matchPrice = p.price <= activeFilters.maxPrice;
+        const matchPrice = (p.price || 0) <= activeFilters.maxPrice;
 
         return matchSearch && matchCategory && matchCollection && matchPrice;
     });
@@ -335,7 +340,9 @@ function renderGrid() {
             const targetProduct = products.find(p => p.id === id);
             if (targetProduct) {
                 // Pass standard selections
-                addToCart(targetProduct, 1, targetProduct.sizes[0], targetProduct.colors ? targetProduct.colors[0] : null);
+                const defaultSize = targetProduct.sizes && targetProduct.sizes.length > 0 ? targetProduct.sizes[0] : 'One Size';
+                const defaultColor = targetProduct.colors && targetProduct.colors.length > 0 ? targetProduct.colors[0] : null;
+                addToCart(targetProduct, 1, defaultSize, defaultColor);
             }
         });
     });

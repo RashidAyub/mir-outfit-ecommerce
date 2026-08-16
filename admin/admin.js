@@ -1,9 +1,10 @@
 // Admin Dashboard Controller
-import { getActiveUser, setActiveUser, getDbOrders, getDbProducts, addDbProduct, updateDbProduct, deleteDbProduct, updateDbOrderStatus } from '../js/firebase.js';
+import { waitForAuth, setActiveUser, getDbOrders, getDbProducts, addDbProduct, updateDbProduct, deleteDbProduct, updateDbOrderStatus, getDbCustomers, seedFirestoreProducts, isFirebaseAvailable, auth } from '../js/firebase.js';
+import { signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Auth Check - Ensure user is admin
-    const user = await getActiveUser();
+    // 1. Auth Check - Wait for Firebase auth to be fully ready, then verify admin role
+    const user = await waitForAuth();
     if (!user || user.role !== 'admin') {
         window.location.href = '../login.html';
         return;
@@ -14,6 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Sidebar Mobile Toggle
     initSidebar();
+
+    // Initialize Seed Button independently
+    initSeedProductsButton();
 
     // Load Dashboard Data (if on index.html)
     if (document.getElementById('stat-revenue')) {
@@ -31,6 +35,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+function initSeedProductsButton() {
+    const seedBtn = document.getElementById('btn-seed-products');
+
+    if (!seedBtn) {
+        console.warn('Seed products button not found');
+        return;
+    }
+
+    seedBtn.addEventListener('click', async () => {
+        try {
+            seedBtn.disabled = true;
+            seedBtn.textContent = 'Seeding...';
+
+            const result = await seedFirestoreProducts();
+
+            alert(result.message);
+
+            if (result.success) {
+                await loadDashboardMetrics();
+            }
+        } catch (error) {
+            console.error('Seed products error:', error);
+            alert('Failed to seed products: ' + error.message);
+        } finally {
+            seedBtn.disabled = false;
+            seedBtn.textContent = 'Seed Default Products to Firestore';
+        }
+    });
+}
+
 function initTopbar(user) {
     // Set date
     const dateElement = document.getElementById('admin-date');
@@ -46,11 +80,18 @@ function initTopbar(user) {
         avatarElement.title = user.name;
     }
 
-    // Logout handler
+    // Logout handler — properly signs out from Firebase Auth AND clears session
     const logoutBtn = document.getElementById('admin-logout');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
+        logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
+            if (isFirebaseAvailable) {
+                try {
+                    await signOut(auth);
+                } catch (err) {
+                    console.error('Firebase admin signout error:', err);
+                }
+            }
             setActiveUser(null);
             window.location.href = '../login.html';
         });
@@ -71,7 +112,8 @@ async function loadDashboardMetrics() {
     try {
         const orders = await getDbOrders() || [];
         const products = await getDbProducts() || [];
-        const users = JSON.parse(localStorage.getItem('mir_users')) || [];
+        // Get customer count from Firestore (not localStorage)
+        const customerCount = await getDbCustomers();
 
         // 1. Calculate Metrics
         const totalRevenue = orders.reduce((sum, order) => {
@@ -79,14 +121,13 @@ async function loadDashboardMetrics() {
         }, 0);
         
         const activeProducts = products.length;
-        const totalCustomers = users.filter(u => u.role === 'customer').length;
         const totalOrders = orders.length;
 
         // Update DOM
         document.getElementById('stat-revenue').textContent = `₨ ${totalRevenue.toLocaleString()}`;
         document.getElementById('stat-orders').textContent = totalOrders;
         document.getElementById('stat-products').textContent = activeProducts;
-        document.getElementById('stat-customers').textContent = totalCustomers;
+        document.getElementById('stat-customers').textContent = customerCount;
 
         // 2. Render Charts
         renderRevenueChart(orders);
@@ -104,12 +145,8 @@ function renderRevenueChart(orders) {
     const ctx = document.getElementById('revenueChart');
     if (!ctx) return;
 
-    // Group revenue by last 7 days (mock implementation)
-    // Real implementation would group actual order dates
     const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
-    // Generating some realistic looking dummy data based on total revenue for visual appeal,
-    // since newly created orders will just all be today.
     const baseRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0) / 7 || 15000;
     const data = labels.map(() => baseRevenue * (0.5 + Math.random()));
 
@@ -156,14 +193,12 @@ function renderOrderChart(orders) {
     const ctx = document.getElementById('orderChart');
     if (!ctx) return;
 
-    // Count order statuses
     const counts = { Pending: 0, Processing: 0, Delivered: 0, Cancelled: 0 };
     orders.forEach(o => {
         if (counts[o.status] !== undefined) counts[o.status]++;
-        else counts.Pending++; // default
+        else counts.Pending++;
     });
 
-    // If no orders, add some dummy data for the chart to look good in demo
     if (orders.length === 0) {
         counts.Pending = 3;
         counts.Processing = 5;
@@ -177,10 +212,10 @@ function renderOrderChart(orders) {
             datasets: [{
                 data: [counts.Pending, counts.Processing, counts.Delivered, counts.Cancelled],
                 backgroundColor: [
-                    '#f59e0b', // Amber - Pending
-                    '#3b82f6', // Blue - Processing
-                    '#22c55e', // Green - Delivered
-                    '#ef4444'  // Red - Cancelled
+                    '#f59e0b',
+                    '#3b82f6',
+                    '#22c55e',
+                    '#ef4444'
                 ],
                 borderWidth: 0,
                 hoverOffset: 4
@@ -215,14 +250,14 @@ function renderRecentOrders(orders) {
         return;
     }
 
-    // Sort by newest first and take top 5
     const recentOrders = [...orders]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 5);
 
     tbody.innerHTML = recentOrders.map(order => {
         const date = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const name = order.shippingInfo ? `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}` : 'Guest User';
+        // FIXED: Use order.customer.name instead of order.shippingInfo.firstName/lastName
+        const name = (order.customer && order.customer.name) ? order.customer.name : 'Guest';
         const total = order.total ? order.total.toLocaleString() : '0';
         
         let statusBadge = 'badge-pending';
@@ -254,6 +289,8 @@ async function initProductsPage() {
     const form = document.getElementById('product-form');
     const modalTitle = document.getElementById('modal-title');
 
+    if (!btnAdd || !modal || !btnCancel || !form) return;
+
     // Open Modal for New Product
     btnAdd.addEventListener('click', () => {
         form.reset();
@@ -267,26 +304,42 @@ async function initProductsPage() {
         modal.classList.remove('active');
     });
 
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+    });
+
     // Form Submit (Create / Update)
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        // Parse sizes and colors from comma-separated input
+        const sizesRaw = (document.getElementById('prod-sizes').value || '').trim();
+        const colorsRaw = (document.getElementById('prod-colors').value || '').trim();
+        const sizes = sizesRaw ? sizesRaw.split(',').map(s => s.trim()).filter(Boolean) : ['One Size'];
+        const colors = colorsRaw ? colorsRaw.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+        // FIXED: Save as 'title' to match data model used everywhere else
         const productData = {
-            name: document.getElementById('prod-name').value,
+            title: document.getElementById('prod-title').value.trim(),
             price: parseInt(document.getElementById('prod-price').value),
             category: document.getElementById('prod-category').value,
-            image: document.getElementById('prod-image').value,
-            description: document.getElementById('prod-desc').value,
+            collection: document.getElementById('prod-collection').value,
+            image: document.getElementById('prod-image').value.trim(),
+            description: document.getElementById('prod-desc').value.trim(),
+            sizes,
+            colors
         };
 
         const existingId = document.getElementById('prod-id').value;
 
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving...'; }
+
         try {
             if (existingId) {
-                // Update
                 await updateDbProduct(existingId, productData);
             } else {
-                // Create
                 await addDbProduct(productData);
             }
             
@@ -294,7 +347,9 @@ async function initProductsPage() {
             await renderAdminProducts();
         } catch (err) {
             console.error("Error saving product:", err);
-            alert("Failed to save product.");
+            alert("Failed to save product: " + err.message);
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Product'; }
         }
     });
 
@@ -309,11 +364,15 @@ async function initProductsPage() {
             const prod = products.find(p => p.id === id);
             if (prod) {
                 document.getElementById('prod-id').value = prod.id;
-                document.getElementById('prod-name').value = prod.name;
+                // FIXED: Use prod.title (not prod.name)
+                document.getElementById('prod-title').value = prod.title || '';
                 document.getElementById('prod-price').value = prod.price;
-                document.getElementById('prod-category').value = prod.category;
-                document.getElementById('prod-image').value = prod.image;
+                document.getElementById('prod-category').value = prod.category || '';
+                document.getElementById('prod-collection').value = prod.collection || 'summer';
+                document.getElementById('prod-image').value = prod.image || '';
                 document.getElementById('prod-desc').value = prod.description || '';
+                document.getElementById('prod-sizes').value = (prod.sizes || []).join(', ');
+                document.getElementById('prod-colors').value = (prod.colors || []).join(', ');
                 modalTitle.textContent = 'Edit Product';
                 modal.classList.add('active');
             }
@@ -338,21 +397,23 @@ async function renderAdminProducts() {
     const grid = document.getElementById('admin-product-grid');
     if (!grid) return;
 
+    grid.innerHTML = '<div class="admin-empty" style="grid-column: 1 / -1;">Loading products...</div>';
+
     try {
         const products = await getDbProducts() || [];
         
         if (products.length === 0) {
-            grid.innerHTML = '<div class="admin-empty" style="grid-column: 1 / -1;">No products found in the catalog.</div>';
+            grid.innerHTML = '<div class="admin-empty" style="grid-column: 1 / -1;">No products found in the catalog. Use the "Add New Product" button or seed defaults from the Dashboard.</div>';
             return;
         }
 
         grid.innerHTML = products.map(p => `
             <div class="admin-product-card">
-                <img src="${p.image}" alt="${p.name}">
+                <img src="${p.image}" alt="${p.title || p.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
                 <div class="card-body">
-                    <h4>${p.name}</h4>
-                    <div class="price">₨ ${p.price.toLocaleString()}</div>
-                    <div style="font-size:0.8rem; color:#666; margin-top:4px;">Category: ${p.category}</div>
+                    <h4>${p.title || p.name || 'Unnamed Product'}</h4>
+                    <div class="price">₨ ${(p.price || 0).toLocaleString()}</div>
+                    <div style="font-size:0.8rem; color:#666; margin-top:4px;">Category: ${p.category || '-'} &nbsp;|&nbsp; ${p.collection || '-'}</div>
                 </div>
                 <div class="card-actions">
                     <button class="btn-admin btn-admin-outline btn-admin-sm btn-edit" data-id="${p.id}" style="flex:1;">Edit</button>
@@ -383,9 +444,16 @@ async function initOrdersPage() {
     const form = document.getElementById('order-form');
     const btnCancel = document.getElementById('btn-cancel-order');
 
+    if (!modal || !form || !btnCancel) return;
+
     // Close Modal
     btnCancel.addEventListener('click', () => {
         modal.classList.remove('active');
+    });
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
     });
 
     // Form Submit (Update Status)
@@ -394,16 +462,20 @@ async function initOrdersPage() {
         const id = document.getElementById('order-id-input').value;
         const status = document.getElementById('order-status-input').value;
 
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating...'; }
+
         try {
             await updateDbOrderStatus(id, status);
             modal.classList.remove('active');
             
-            // Re-render based on current filter
             const filterValue = document.getElementById('order-filter') ? document.getElementById('order-filter').value : 'all';
             await renderAllOrders(filterValue);
         } catch (err) {
             console.error("Error updating order:", err);
             alert("Failed to update order status.");
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Status'; }
         }
     });
 
@@ -427,6 +499,8 @@ async function renderAllOrders(filterStatus = 'all') {
     const tbody = document.getElementById('all-orders-body');
     if (!tbody) return;
 
+    tbody.innerHTML = '<tr><td colspan="7" class="admin-empty">Loading orders...</td></tr>';
+
     try {
         let orders = await getDbOrders() || [];
         
@@ -434,7 +508,6 @@ async function renderAllOrders(filterStatus = 'all') {
             orders = orders.filter(o => o.status === filterStatus);
         }
 
-        // Sort by newest first
         orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         if (orders.length === 0) {
@@ -450,16 +523,21 @@ async function renderAllOrders(filterStatus = 'all') {
         tbody.innerHTML = orders.map(order => {
             const date = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
             
-            let custInfo = 'Guest';
-            if (order.shippingInfo) {
-                custInfo = `<strong>${order.shippingInfo.firstName} ${order.shippingInfo.lastName}</strong><br><span style="font-size:0.75rem; color:#666;">${order.shippingInfo.phone}</span>`;
+            // FIXED: Use order.customer (not order.shippingInfo)
+            let custInfo = '<em>Guest</em>';
+            if (order.customer) {
+                custInfo = `<strong>${order.customer.name || 'N/A'}</strong><br>
+                    <span style="font-size:0.75rem; color:#666;">${order.customer.email || ''}</span><br>
+                    <span style="font-size:0.75rem; color:#666;">${order.customer.phone || ''}</span>`;
             }
 
-            const itemsStr = order.items ? order.items.map(i => `${i.quantity}x ${i.name}`).join(',<br>') : 'N/A';
+            // FIXED: Use i.title (not i.name)
+            const itemsStr = order.items ? order.items.map(i => `${i.quantity}x ${i.title || i.name || 'Item'}`).join(',<br>') : 'N/A';
             const total = order.total ? order.total.toLocaleString() : '0';
             
             let statusBadge = 'badge-pending';
             if (order.status === 'Processing') statusBadge = 'badge-processing';
+            else if (order.status === 'Shipped') statusBadge = 'badge-processing';
             else if (order.status === 'Delivered') statusBadge = 'badge-delivered';
             else if (order.status === 'Cancelled') statusBadge = 'badge-cancelled';
 

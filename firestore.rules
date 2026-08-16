@@ -1,0 +1,80 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ─────────────────────────────────────────────────────
+
+    // Check if the requesting user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the requesting user owns the given document (by uid)
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Check if the requesting user has role == 'admin' in Firestore users collection
+    function isAdmin() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Prevent a user from writing role: "admin" to themselves
+    function notEscalatingToAdmin() {
+      return !('role' in request.resource.data) ||
+             request.resource.data.role == 'customer';
+    }
+
+    // ─── Products Collection ──────────────────────────────────────────────────
+    // Guests & authenticated users can read all products
+    // Only admins can create, update, or delete products
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ─── Orders Collection ────────────────────────────────────────────────────
+    // Authenticated customers can create orders (their own)
+    // A customer can only read their own orders
+    // Only admins can read ALL orders and update order status
+    match /orders/{orderId} {
+      // Any authenticated user can create an order
+      allow create: if isAuthenticated();
+
+      // Customer can only read their own order
+      // Admin can read any order
+      allow read: if isAdmin() ||
+                     (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+      // Only admin can update order status
+      // Prevent customers from updating others' orders
+      allow update: if isAdmin();
+
+      // Only admin can delete orders
+      allow delete: if isAdmin();
+    }
+
+    // ─── Users Collection ─────────────────────────────────────────────────────
+    // A user can read and update their own profile document
+    // Only admin can read all user documents
+    // Customers cannot escalate their own role to admin
+    match /users/{userId} {
+      // User can read their own document; admin can read any
+      allow read: if isOwner(userId) || isAdmin();
+
+      // On create: user can only create their own document, role must be 'customer'
+      allow create: if isOwner(userId) && notEscalatingToAdmin();
+
+      // On update: user can update their own profile BUT cannot change role to admin
+      // Admin can update any user document (e.g., to set role: admin via admin-setup)
+      allow update: if (isOwner(userId) && notEscalatingToAdmin()) || isAdmin();
+
+      // Only admin can delete user documents
+      allow delete: if isAdmin();
+    }
+
+  }
+}

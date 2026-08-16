@@ -1,9 +1,9 @@
 // Checkout Page Controller
 import { getCartItems, getCartSubtotal, clearCart } from './cart.js';
-import { addDbOrder, getActiveUser } from './firebase.js';
+import { addDbOrder, waitForAuth } from './firebase.js';
 import { showToast } from './main.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const items = getCartItems();
     if (items.length === 0) {
         showToast("Your cart is empty. Redirecting to shop...", "error");
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderSummaryList();
-    initCheckoutForm();
+    await initCheckoutForm();
 });
 
 // Render the right-side summary list
@@ -49,12 +49,12 @@ function renderSummaryList() {
 }
 
 // Form submit event binder
-function initCheckoutForm() {
+async function initCheckoutForm() {
     const form = document.getElementById('checkout-shipping-form');
     if (!form) return;
 
     // Autocomplete values if logged in user exists
-    const activeUser = getActiveUser();
+    const activeUser = await waitForAuth();
     if (activeUser) {
         const nameInput = document.getElementById('checkout-name');
         const emailInput = document.getElementById('checkout-email');
@@ -107,6 +107,10 @@ function initCheckoutForm() {
         };
 
         try {
+            // Disable Place Order button to prevent double submit
+            const placeBtn = form.querySelector('button[type="submit"]');
+            if (placeBtn) { placeBtn.disabled = true; placeBtn.textContent = 'Placing Order...'; }
+
             // Save order in Firestore / localStorage fallback
             const savedOrder = await addDbOrder(orderData);
             
@@ -117,6 +121,8 @@ function initCheckoutForm() {
             window.location.href = `order-success.html?id=${savedOrder.id}`;
         } catch (err) {
             console.error("Order processing failed: ", err);
+            const placeBtn = form.querySelector('button[type="submit"]');
+            if (placeBtn) { placeBtn.disabled = false; placeBtn.textContent = 'Place Order'; }
             showToast("Failed to place your order. Please try again.", "error");
         }
     });
